@@ -1,13 +1,13 @@
 import google.generativeai as genai
-
 import chromadb
-import numpy as np
-import pandas as pd
-
-from utils import fetch_product_info
-
-from IPython.display import Markdown
+import json
+import speech_recognition as sr
+from gtts import gTTS
+import os
+import playsound
 from chromadb import Documents, EmbeddingFunction, Embeddings
+import pyaudio
+from utils import fetch_product_info
 
 
 class GeminiEmbeddingFunction(EmbeddingFunction):
@@ -47,7 +47,7 @@ def make_prompt(query, relevant_passage):
   strike a friendly and converstional tone. \
   If the passage is irrelevant to the answer, you may ignore it.\
   If the data is not sufficient just return the response text as 'Data Insufficient'....nothing else\
-  The response must be short....around 150-200 words \
+  The response must be short....around 75-100 words \
   Answer the question as if you are a human salesman......end every response with a question to help the user further.....example volunteer extra information.....volunteer to compare the products and provide the best
   QUESTION: '{query}'
   PASSAGE: '{relevant_passage}'
@@ -84,21 +84,73 @@ def identify_topic(query, model):
         return None
 
 
+def text_to_speech(text):
+    tts = gTTS(text=text, lang="en")
+    filename = "response.mp3"
+    tts.save(filename)
+    playsound.playsound(filename)
+    os.remove(filename)
+
+
+def speech_to_text():
+    recognizer = sr.Recognizer()
+    with sr.Microphone(
+        sample_rate=16000, chunk_size=1024
+    ) as source:  # Adjusting sample rate and chunk size
+        print("Listening...")
+        audio = recognizer.listen(
+            source, timeout=5
+        )  # Set a timeout for faster response
+    try:
+        query = recognizer.recognize_google(audio)
+        print(f"You said: {query}")
+        return query
+    except sr.UnknownValueError:
+        print("Sorry, I could not understand the audio.")
+        return None
+    except sr.RequestError as e:
+        print(f"Could not request results; {e}")
+        return None
+
+
 counter = 0
 model = genai.GenerativeModel("gemini-pro")
 passage = ""
 db = None
+
 while True:
-    user_input = input("You: ")
-    if user_input == "exit":
+    user_input = speech_to_text()
+    if user_input is None:
+        continue
+    if user_input.lower() == "exit":
         break
     if counter == 0:
         topic = identify_topic(user_input, model)
-        print(topic)
+        print(f"Identified Topic: {topic}")
         data = fetch_product_info(topic)
+        if data is None:
+            text_to_speech("No product information available.")
+            continue
         db = create_chroma_db(data, "content")
         passage = get_relevant_passage(user_input, db)
         counter += 1
     prompt = make_prompt(user_input, passage)
     answer = model.generate_content(prompt)
-    print(answer._result.candidates[0].content.parts[0].text)
+    response_text = answer._result.candidates[0].content.parts[0].text
+    print(response_text)
+    text_to_speech(response_text)
+
+# while True:
+#     user_input = input("You: ")
+#     if user_input == "exit":
+#         break
+#     if counter == 0:
+#         topic = identify_topic(user_input, model)
+#         print(topic)
+#         data = fetch_product_info(topic)
+#         db = create_chroma_db(data, "content")
+#         passage = get_relevant_passage(user_input, db)
+#         counter += 1
+#     prompt = make_prompt(user_input, passage)
+#     answer = model.generate_content(prompt)
+#     print(answer._result.candidates[0].content.parts[0].text)

@@ -85,7 +85,7 @@ def process_product_string(input_string, title):
             else trimmed_product[: stars_index + 5].strip()
         )
 
-        product_object = description + " cost -  " + cost
+        product_object = description + " cost -  " + cost + " rupees "
         print(product_object)
 
         product_list.append(product_object)
