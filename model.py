@@ -32,22 +32,9 @@ def create_chroma_db(documents, name):
 GOOGLE_API_KEY = ""
 genai.configure(api_key=GOOGLE_API_KEY)
 
-data = [
-    "M-Audio Oxygen Pro Mini 32 Key USB MIDI Keyboard Controller With Beat Pads, MIDI assignable Knobs, Buttons & Faders and Software Suite Included  4.4 out of 5 stars 12,489",
-    "M-Audio Oxygen 61 V 61 Key USB MIDI Keyboard Controller With Beat Pads, Smart Chord & Scale Modes, Arpeggiator and Software Suite Included  4.4 out of 5 stars 20,300",
-    "M-Audio Oxygen 49 V 49 Key USB MIDI Keyboard Controller With Beat Pads, Smart Chord & Scale Modes, Arpeggiator and Software Suite Included  4.4 out of 5 stars 15,899",
-    "M-Audio Oxygen Pro 49 49 Key USB MIDI Keyboard Controller With Beat Pads, MIDI assignable Knobs, Buttons & Faders and Software Suite Included  4.6 out of 5 stars 21,900",
-    "Vault Ikon MK2 49 Key Velocity Sensitive Midi Keyboard with Bitwig 8-Track Software  3.7 out of 5 stars 7,123",
-    "M-Audio Keystation 88 MK3 88 Key Semi Weighted MIDI Keyboard Controller for Complete Command of Virtual Synthesisers and DAW parameters  4.5 out of 5 stars 28,000",
-]
-
-db = create_chroma_db(data, "midicontrollers")
-
-peek_data = db.peek(3)
-
 
 def get_relevant_passage(query, db):
-    results = db.query(query_texts=[query], n_results=5)
+    results = db.query(query_texts=[query], n_results=7)
     passages = results["documents"][0]
     return passages
 
@@ -59,6 +46,7 @@ def make_prompt(query, relevant_passage):
   However, you are talking to a non-technical audience, so be sure to break down complicated concepts and \
   strike a friendly and converstional tone. \
   If the passage is irrelevant to the answer, you may ignore it.\
+  If the data is not sufficient just return the response text as 'Data Insufficient'....nothing else\
   The response must be short....around 150-200 words \
   Answer the question as if you are a human salesman......end every response with a question to help the user further.....example volunteer extra information.....volunteer to compare the products and provide the best
   QUESTION: '{query}'
@@ -71,14 +59,46 @@ def make_prompt(query, relevant_passage):
     return prompt
 
 
-passage = get_relevant_passage("midi controller", db)
+def identify_topic(query, model):
+    prompt = (
+        "from the given sentence identify the topic of discussion.......the topic will mostly always be a product......give me the \
+    range of products the user is looking for eg if search query is how good is samsung m32.....you need to return samsung m32......in max of \
+    3 words just tell me the topic.....i want your response to be as accurate as possible \
+    sentence : '{query}'"
+    ).format(query=query)
 
-query = "yes do compare the 2"
-prompt = make_prompt(query, passage)
-Markdown(prompt)
-print(prompt)
+    # Generate content
+    topic = model.generate_content(prompt)
+
+    # Print for debugging to inspect the structure
+    # print("DEBUG: Topic content structure: ", topic)
+
+    # Try extracting the text safely
+    try:
+        text = topic._result.candidates[0].content.parts[0].text
+        return text
+    except AttributeError:
+        print(
+            "AttributeError: The topic response did not contain the expected structure."
+        )
+        return None
 
 
+counter = 0
 model = genai.GenerativeModel("gemini-pro")
-answer = model.generate_content(prompt)
-print(answer)
+passage = ""
+db = None
+while True:
+    user_input = input("You: ")
+    if user_input == "exit":
+        break
+    if counter == 0:
+        topic = identify_topic(user_input, model)
+        print(topic)
+        data = fetch_product_info(topic)
+        db = create_chroma_db(data, "content")
+        passage = get_relevant_passage(user_input, db)
+        counter += 1
+    prompt = make_prompt(user_input, passage)
+    answer = model.generate_content(prompt)
+    print(answer._result.candidates[0].content.parts[0].text)

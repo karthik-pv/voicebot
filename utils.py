@@ -21,7 +21,6 @@ def create_amazon_url(search_query):
 def fetch_product_info(search_query):
     url = create_amazon_url(search_query)
     html_content = make_fetch_request(url, headers)
-    print(html_content)
     if html_content:
         relevant_content = parse_html_string_and_fetch_relevant_content(html_content)
         if relevant_content:
@@ -62,6 +61,10 @@ def process_product_string(input_string, title):
     product_list = []
 
     for product in products:
+        product = product.replace(
+            "SponsoredSponsoredYou are seeing this ad based on the product’s relevance to your search query.Let us know",
+            "",
+        )
         trimmed_product = product.strip()
         first_rupee_index = trimmed_product.find("₹")
         if first_rupee_index == -1:
@@ -82,8 +85,9 @@ def process_product_string(input_string, title):
             else trimmed_product[: stars_index + 5].strip()
         )
 
-        product_object = {"title": title, "description": description, "cost": cost}
+        product_object = description + " cost -  " + cost
+        print(product_object)
 
         product_list.append(product_object)
 
-    return product_list if product_list else None  # Return None if no products found
+    return product_list if product_list else None
