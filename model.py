@@ -48,6 +48,7 @@ def make_prompt(query, relevant_passage):
   If the passage is irrelevant to the answer, you may ignore it.\
   If the data is not sufficient just return the response text as 'Data Insufficient'....nothing else\
   The response must be short....around 75-100 words \
+  When you are not talking about the product in particular keep your responses short \
   Answer the question as if you are a human salesman......end every response with a question to help the user further.....example volunteer extra information.....volunteer to compare the products and provide the best
   QUESTION: '{query}'
   PASSAGE: '{relevant_passage}'
@@ -69,7 +70,7 @@ def identify_topic(query, model):
 
     # Generate content
     topic = model.generate_content(prompt)
-
+    print(topic)
     # Print for debugging to inspect the structure
     # print("DEBUG: Topic content structure: ", topic)
 
@@ -85,7 +86,7 @@ def identify_topic(query, model):
 
 
 def text_to_speech(text):
-    tts = gTTS(text=text, lang="en")
+    tts = gTTS(text=text, lang="en-us", tld="us", slow=False)
     filename = "response.mp3"
     tts.save(filename)
     playsound.playsound(filename)
