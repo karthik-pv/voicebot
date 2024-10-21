@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Chat</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      .chatbox {
+        width: 100%;
+        height: 500px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+        background-color: white;
+      }
+      .chat-entry {
+        margin-bottom: 10px;
+      }
+      .user {
+        color: blue;
+      }
+      .ai {
+        color: green;
+      }
+      form {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>AI Chat Interface</h1>
+    <div class="chatbox" id="chatbox">
+      {% for entry in conversation %}
+      <div class="chat-entry {{ entry.sender|lower }}">
+        <strong>{{ entry.sender }}:</strong> {{ entry.message }}
+      </div>
+      {% endfor %}
+    </div>
+
+    <form id="queryForm">
+      <label for="query">Your question:</label>
+      <input type="text" id="query" name="query" required />
+      <button type="submit">Ask</button>
+    </form>
+
+    <script>
+      $(document).ready(function () {
+        $("#queryForm").submit(function (e) {
+          e.preventDefault();
+
+          var userInput = $("#query").val();
+
+          $.post("/ask", { query: userInput }, function (data) {
+            // Update the conversation history
+            var chatbox = $("#chatbox");
+            chatbox.empty();
+
+            data.conversation.forEach(function (entry) {
+              chatbox.append(
+                `<div class='chat-entry ${entry.sender.toLowerCase()}'><strong>${
+                  entry.sender
+                }:</strong> ${entry.message}</div>`
+              );
+            });
+
+            // Clear input
+            $("#query").val("");
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

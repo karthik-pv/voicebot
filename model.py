@@ -29,7 +29,7 @@ def create_chroma_db(documents, name):
     return db
 
 
-GOOGLE_API_KEY = ""
+GOOGLE_API_KEY = "AIzaSyCadPuPUQvtH-NsETbzmgooO9OT2NkAt1s"
 genai.configure(api_key=GOOGLE_API_KEY)
 
 
@@ -132,8 +132,9 @@ while True:
         if data is None:
             text_to_speech("No product information available.")
             continue
-        db = create_chroma_db(data, "content")
-        passage = get_relevant_passage(user_input, db)
+        # db = create_chroma_db(data, "content")
+        # passage = get_relevant_passage(user_input, db)
+        passage = data
         counter += 1
     prompt = make_prompt(user_input, passage)
     answer = model.generate_content(prompt)
