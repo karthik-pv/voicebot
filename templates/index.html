@@ -31,6 +31,18 @@
       form {
         margin-top: 20px;
       }
+      .mic-button {
+        background-color: #4caf50;
+        color: white;
+        padding: 10px;
+        margin-left: 10px;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+      }
+      .mic-button:hover {
+        background-color: #45a049;
+      }
     </style>
   </head>
   <body>
@@ -47,10 +59,12 @@
       <label for="query">Your question:</label>
       <input type="text" id="query" name="query" required />
       <button type="submit">Ask</button>
+      <button type="button" class="mic-button" id="micButton">🎤 Speak</button>
     </form>
 
     <script>
       $(document).ready(function () {
+        // Handle text input form submission
         $("#queryForm").submit(function (e) {
           e.preventDefault();
 
@@ -71,6 +85,18 @@
 
             // Clear input
             $("#query").val("");
+          });
+        });
+
+        // Handle voice input button click
+        $("#micButton").click(function () {
+          $.post("/mic_click", function (data) {
+            if (data.input_text) {
+              $("#query").val(data.input_text); // Set recognized voice input into text field
+              $("#queryForm").submit(); // Automatically submit the form with voice input
+            } else if (data.error) {
+              alert(data.error); // Alert if speech was not recognized
+            }
           });
         });
       });
